@@ -101,123 +101,137 @@
 
 </div>
 
-<script>
+<!-- Firebase + JavaScript -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.1/firebase-app.js";
+    import { getDatabase, ref, set, get, child, update, remove } from "https://www.gstatic.com/firebasejs/10.6.1/firebase-database.js";
 
-// LOAD DATA FROM STORAGE
-let students = JSON.parse(localStorage.getItem("students")) || [];
+    // Firebase configuration (your code)
+    const firebaseConfig = {
+      apiKey: "AIzaSyCARWtnX9DZw-9e0wqoaXPf48pY5wO8zSA",
+      authDomain: "cc01niharry.firebaseapp.com",
+      databaseURL: "https://cc01niharry-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "cc01niharry",
+      storageBucket: "cc01niharry.firebasestorage.app",
+      messagingSenderId: "714955079966",
+      appId: "1:714955079966:web:3286289beb5051f146490f"
+    };
 
-// SAVE TO STORAGE
-function saveToStorage() {
-    localStorage.setItem("students", JSON.stringify(students));
-}
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
 
-// DISPLAY ALL STUDENTS
-function displayStudents() {
-    let table = document.getElementById("studentTable");
-    table.innerHTML = "";
+    const studentTable = document.getElementById("studentTable");
 
-    students.forEach((student, index) => {
-        table.innerHTML += `
-            <tr>
-                <td>${student.id}</td>
-                <td>${student.name}</td>
-                <td>${student.course}</td>
-                <td>${student.year}</td>
-                <td>${student.age}</td>
-                <td>
-                    <button onclick="editStudent(${index})">Edit</button>
-                    <button onclick="deleteStudent(${index})">Delete</button>
-                </td>
-            </tr>
-        `;
-    });
-}
+    // ADD STUDENT
+    window.addStudent = function() {
+        const id = document.getElementById("studentId").value;
+        const name = document.getElementById("fullName").value;
+        const course = document.getElementById("course").value;
+        const year = document.getElementById("yearLevel").value;
+        const age = document.getElementById("age").value;
 
-// ADD STUDENT
-function addStudent() {
+        if (!id || !name) { alert("Student ID and Name are required!"); return; }
 
-    let id = document.getElementById("studentId").value;
-    let name = document.getElementById("fullName").value;
-    let course = document.getElementById("course").value;
-    let year = document.getElementById("yearLevel").value;
-    let age = document.getElementById("age").value;
+        set(ref(database, 'students/' + id), { id, name, course, year, age })
+            .then(() => {
+                alert("Student added!");
+                displayStudents();
+                clearFields();
+            })
+            .catch(error => alert("Error: " + error));
+    };
 
-    if(id === "" || name === "") {
-        alert("Student ID and Name are required!");
-        return;
+    // DISPLAY STUDENTS
+    window.displayStudents = function() {
+        get(child(ref(database), 'students')).then(snapshot => {
+            studentTable.innerHTML = "";
+            if(snapshot.exists()) {
+                const data = snapshot.val();
+                Object.values(data).forEach(stu => {
+                    studentTable.innerHTML += `
+                        <tr>
+                            <td>${stu.id}</td>
+                            <td>${stu.name}</td>
+                            <td>${stu.course}</td>
+                            <td>${stu.year}</td>
+                            <td>${stu.age}</td>
+                            <td>
+                                <button onclick="editStudent('${stu.id}')">Edit</button>
+                                <button onclick="deleteStudent('${stu.id}')">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+        }).catch(error => console.error(error));
+    };
+
+    // SEARCH STUDENT
+    window.searchStudent = function() {
+        const searchValue = prompt("Enter Student ID or Name:").toLowerCase();
+        get(child(ref(database), 'students')).then(snapshot => {
+            let found = false;
+            if(snapshot.exists()) {
+                Object.values(snapshot.val()).forEach(stu => {
+                    if(stu.id.toLowerCase() === searchValue || stu.name.toLowerCase() === searchValue) {
+                        alert(`Student Found:
+ID: ${stu.id}
+Name: ${stu.name}
+Course: ${stu.course}
+Year: ${stu.year}
+Age: ${stu.age}`);
+                        found = true;
+                    }
+                });
+            }
+            if(!found) alert("Student not found.");
+        });
+    };
+
+    // EDIT STUDENT
+    window.editStudent = function(id) {
+        const newCourse = prompt("Enter new Course:");
+        const newYear = prompt("Enter new Year Level:");
+        const newAge = prompt("Enter new Age?");
+        const updates = {};
+        if(newCourse) updates['course'] = newCourse;
+        if(newYear) updates['year'] = newYear;
+        if(newAge) updates['age'] = newAge;
+        update(ref(database, 'students/' + id), updates)
+            .then(() => displayStudents())
+            .catch(error => alert("Error: " + error));
+    };
+
+    // DELETE STUDENT
+    window.deleteStudent = function(id) {
+        if(confirm("Delete this student?")) {
+            remove(ref(database, 'students/' + id))
+                .then(() => displayStudents())
+                .catch(error => alert("Error: " + error));
+        }
+    };
+
+    // EXIT SYSTEM (CLEAR ALL)
+    window.exitSystem = function() {
+        if(confirm("Clear all student records?")) {
+            remove(ref(database, 'students'))
+                .then(() => displayStudents())
+                .catch(error => alert("Error: " + error));
+        }
+    };
+
+    // CLEAR INPUTS
+    function clearFields() {
+        document.getElementById("studentId").value = "";
+        document.getElementById("fullName").value = "";
+        document.getElementById("course").value = "";
+        document.getElementById("yearLevel").value = "";
+        document.getElementById("age").value = "";
     }
 
-    students.push({ id, name, course, year, age });
-
-    saveToStorage();
+    // LOAD STUDENTS ON PAGE LOAD
     displayStudents();
-    clearFields();
-}
-
-// SEARCH STUDENT
-function searchStudent() {
-    let searchValue = prompt("Enter Student ID or Name:");
-
-    let result = students.find(student =>
-        student.id === searchValue ||
-        student.name.toLowerCase() === searchValue.toLowerCase()
-    );
-
-    if(result) {
-        alert("Student Found:\n" +
-              "ID: " + result.id +
-              "\nName: " + result.name +
-              "\nCourse: " + result.course +
-              "\nYear: " + result.year +
-              "\nAge: " + result.age);
-    } else {
-        alert("Student not found.");
-    }
-}
-
-// EDIT STUDENT
-function editStudent(index) {
-    let newCourse = prompt("Enter new Course:");
-    let newYear = prompt("Enter new Year Level:");
-    let newAge = prompt("Enter new Age:");
-
-    if(newCourse) students[index].course = newCourse;
-    if(newYear) students[index].year = newYear;
-    if(newAge) students[index].age = newAge;
-
-    saveToStorage();
-    displayStudents();
-}
-
-// DELETE STUDENT
-function deleteStudent(index) {
-    if(confirm("Are you sure you want to delete this student?")) {
-        students.splice(index, 1);
-        saveToStorage();
-        displayStudents();
-    }
-}
-
-// EXIT SYSTEM
-function exitSystem() {
-    if(confirm("Exit system and clear all records?")) {
-        localStorage.removeItem("students");
-        students = [];
-        displayStudents();
-    }
-}
-
-// CLEAR INPUT FIELDS
-function clearFields() {
-    document.getElementById("studentId").value = "";
-    document.getElementById("fullName").value = "";
-    document.getElementById("course").value = "";
-    document.getElementById("yearLevel").value = "";
-    document.getElementById("age").value = "";
-}
-
-// LOAD STUDENTS ON PAGE LOAD
-displayStudents();
 
 </script>
 
