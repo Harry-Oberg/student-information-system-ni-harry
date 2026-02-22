@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Information Management System</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            margin: 0;
+            padding: 20px;
+            color: white;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .container {
+            background: white;
+            color: black;
+            padding: 20px;
+            border-radius: 15px;
+            max-width: 900px;
+            margin: auto;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px;
+            width: 150px;
+        }
+
+        button {
+            padding: 8px 12px;
+            margin: 5px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .add { background: #28a745; color: white; }
+        .search { background: #17a2b8; color: white; }
+        .exit { background: #dc3545; color: white; }
+
+        table {
+            width: 100%;
+            margin-top: 15px;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>Student Information Management System</h1>
+
+<div class="container">
+
+    <!-- INPUT SECTION -->
+    <input type="text" id="studentId" placeholder="Student ID">
+    <input type="text" id="fullName" placeholder="Full Name">
+    <input type="text" id="course" placeholder="Course">
+    <input type="text" id="yearLevel" placeholder="Year Level">
+    <input type="number" id="age" placeholder="Age">
+
+    <br>
+
+    <button class="add" onclick="addStudent()">Add Student</button>
+    <button class="search" onclick="searchStudent()">Search</button>
+    <button class="exit" onclick="exitSystem()">Exit</button>
+
+    <!-- TABLE DISPLAY -->
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Course</th>
+                <th>Year</th>
+                <th>Age</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="studentTable"></tbody>
+    </table>
+
+</div>
+
+<script>
+
+// LOAD DATA FROM STORAGE
+let students = JSON.parse(localStorage.getItem("students")) || [];
+
+// SAVE TO STORAGE
+function saveToStorage() {
+    localStorage.setItem("students", JSON.stringify(students));
+}
+
+// DISPLAY ALL STUDENTS
+function displayStudents() {
+    let table = document.getElementById("studentTable");
+    table.innerHTML = "";
+
+    students.forEach((student, index) => {
+        table.innerHTML += `
+            <tr>
+                <td>${student.id}</td>
+                <td>${student.name}</td>
+                <td>${student.course}</td>
+                <td>${student.year}</td>
+                <td>${student.age}</td>
+                <td>
+                    <button onclick="editStudent(${index})">Edit</button>
+                    <button onclick="deleteStudent(${index})">Delete</button>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+// ADD STUDENT
+function addStudent() {
+
+    let id = document.getElementById("studentId").value;
+    let name = document.getElementById("fullName").value;
+    let course = document.getElementById("course").value;
+    let year = document.getElementById("yearLevel").value;
+    let age = document.getElementById("age").value;
+
+    if(id === "" || name === "") {
+        alert("Student ID and Name are required!");
+        return;
+    }
+
+    students.push({ id, name, course, year, age });
+
+    saveToStorage();
+    displayStudents();
+    clearFields();
+}
+
+// SEARCH STUDENT
+function searchStudent() {
+    let searchValue = prompt("Enter Student ID or Name:");
+
+    let result = students.find(student =>
+        student.id === searchValue ||
+        student.name.toLowerCase() === searchValue.toLowerCase()
+    );
+
+    if(result) {
+        alert("Student Found:\n" +
+              "ID: " + result.id +
+              "\nName: " + result.name +
+              "\nCourse: " + result.course +
+              "\nYear: " + result.year +
+              "\nAge: " + result.age);
+    } else {
+        alert("Student not found.");
+    }
+}
+
+// EDIT STUDENT
+function editStudent(index) {
+    let newCourse = prompt("Enter new Course:");
+    let newYear = prompt("Enter new Year Level:");
+    let newAge = prompt("Enter new Age:");
+
+    if(newCourse) students[index].course = newCourse;
+    if(newYear) students[index].year = newYear;
+    if(newAge) students[index].age = newAge;
+
+    saveToStorage();
+    displayStudents();
+}
+
+// DELETE STUDENT
+function deleteStudent(index) {
+    if(confirm("Are you sure you want to delete this student?")) {
+        students.splice(index, 1);
+        saveToStorage();
+        displayStudents();
+    }
+}
+
+// EXIT SYSTEM
+function exitSystem() {
+    if(confirm("Exit system and clear all records?")) {
+        localStorage.removeItem("students");
+        students = [];
+        displayStudents();
+    }
+}
+
+// CLEAR INPUT FIELDS
+function clearFields() {
+    document.getElementById("studentId").value = "";
+    document.getElementById("fullName").value = "";
+    document.getElementById("course").value = "";
+    document.getElementById("yearLevel").value = "";
+    document.getElementById("age").value = "";
+}
+
+// LOAD STUDENTS ON PAGE LOAD
+displayStudents();
+
+</script>
+
+</body>
+</html>
